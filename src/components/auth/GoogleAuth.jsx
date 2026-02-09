@@ -38,7 +38,7 @@ const Login = () => {
               try {
                 const idToken = credentialResponse.credential;
                 const res = await googleAuth(idToken);
-
+                console.log('user accestoken ..',res.data.access_token)
                 localStorage.setItem("access_token", res.data.access_token);
                 localStorage.setItem("user", JSON.stringify(res.data.user));
 
