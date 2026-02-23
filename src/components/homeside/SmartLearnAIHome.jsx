@@ -399,16 +399,17 @@ const SmartLearnAIHome = () => {
       });
       console.log(response.data);
       setProfil(response.data);
-
-      if (!response.data) {
-        console.log('.........................') // adjust based on actual response
+        if (!profiledata) {
+        console.log('.........................') 
         navigate('/StudentProfileSetup');
-      }
+  }
+
     } catch (error) {
       console.error("Auth check failed:", error);
-      navigate('/StudentProfileSetup');
+      navigate('/auth/google');
     }
   };
+  
 
   const handleGetStarted = () => {
     navigate('/DashboardOverview');
