@@ -17,30 +17,10 @@
 //   const [loading, setLoading] = useState(false);
 //   const [errors, setErrors] = useState({});
 //   const [imagePreview, setImagePreview] = useState(null);
+//   const [validationErrors, setValidationErrors] = useState(null);
 
 //   // API base URL
 //   const API_BASE_URL = 'http://127.0.0.1:8000';
-
-  
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 //   // Handle input changes
 //   const handleInputChange = (e) => {
@@ -96,7 +76,7 @@
 //   const handleGradeSelect = (gradeNumber) => {
 //     setFormData(prev => ({
 //       ...prev,
-//       class_number: gradeNumber
+//       class_number: gradeNumber.toString() // Convert to string if backend expects string
 //     }));
     
 //     // Clear error
@@ -141,14 +121,10 @@
     
 //     if (!formData.class_number) {
 //       newErrors.class_number = 'Please select a class';
-//     } else if (formData.class_number < 1 || formData.class_number > 10) {
-//       newErrors.class_number = 'Class must be between 1 and 10';
 //     }
     
 //     if (!formData.medium) {
 //       newErrors.medium = 'Please select a medium';
-//     } else if (!['malayalam', 'english'].includes(formData.medium.toLowerCase())) {
-//       newErrors.medium = 'Medium must be either Malayalam or English';
 //     }
     
 //     if (!formData.learningstyle) {
@@ -173,12 +149,23 @@
 //     }
 
 //     setLoading(true);
+//     setValidationErrors(null);
 
 //     try {
 //       // Create FormData for multipart/form-data
 //       const submitFormData = new FormData();
+      
+//       // Log the data being sent for debugging
+//       console.log('Sending data:', {
+//         name: formData.name,
+//         class_number: formData.class_number,
+//         medium: formData.medium,
+//         learningstyle: formData.learningstyle,
+//         hasImage: !!formData.image
+//       });
+      
 //       submitFormData.append('name', formData.name);
-//       submitFormData.append('class_number', formData.class_number);
+//       submitFormData.append('class_number', parseInt(formData.class_number));
 //       submitFormData.append('medium', formData.medium);
 //       submitFormData.append('learningstyle', formData.learningstyle);
       
@@ -193,18 +180,22 @@
 //         throw new Error('No authentication token found. Please login first.');
 //       }
 
-//       // Make API call
-//       const response = await axios.post(`${API_BASE_URL}/students/create`,submitFormData,{
-//           headers: {
-//             'Content-Type': 'multipart/form-data',
-//             'Authorization': `Bearer ${token}`
-//           }
+    
+//       for (let pair of submitFormData.entries()) {
+//   console.log(pair[0], pair[1])
+// }
+
+//       console.log('token ',token)
+//       const response = await axios.post(`${API_BASE_URL}/students/create`, submitFormData, {
+//         headers: {
+
+//           'Authorization': `Bearer ${token}`
 //         }
-//       );
+//       });
 
 //       console.log('Student created successfully:', response.data);
       
-//       // Show success message or redirect
+//       // Show success message
 //       alert('Student profile created successfully!');
 //       navigate('/SmartLearnAIHome');
       
@@ -212,23 +203,68 @@
 //       console.error('Error creating student:', error);
       
 //       let errorMessage = 'Failed to create student profile';
+      
 //       if (error.response) {
 //         // The request was made and the server responded with a status code
-//         // that falls out of the range of 2xx
+//         console.error('Error response data:', error.response.data);
+//         console.error('Error response status:', error.response.status);
+//         console.error('Error response headers:', error.response.headers);
+        
 //         if (error.response.status === 401) {
 //           errorMessage = 'Authentication failed. Please login again.';
 //         } else if (error.response.status === 403) {
 //           errorMessage = 'You do not have permission to perform this action.';
 //         } else if (error.response.status === 422) {
+//           // Handle validation errors
 //           errorMessage = 'Validation error. Please check your input.';
+          
+//           // Check if the response contains detailed validation errors
+//           if (error.response.data) {
+//             // Try to extract validation errors
+//             const validationData = error.response.data;
+//             console.log('Validation errors:', validationData);
+            
+//             // You can set these errors to display in the UI
+//             setValidationErrors(validationData);
+            
+//             // If the error has details about which fields failed, update the errors state
+//             if (validationData.errors) {
+//               const fieldErrors = {};
+//               Object.keys(validationData.errors).forEach(key => {
+//                 fieldErrors[key] = validationData.errors[key].join(', ');
+//               });
+//               setErrors(fieldErrors);
+//             }
+            
+//             // Try to get a more specific error message
+//             if (validationData.detail) {
+//               if (typeof validationData.detail === 'string') {
+//                 errorMessage = validationData.detail;
+//               } else if (Array.isArray(validationData.detail)) {
+//                 errorMessage = validationData.detail.map(err => {
+//                   if (err.loc) {
+//                     const field = err.loc[err.loc.length - 1];
+//                     return `${field}: ${err.msg}`;
+//                   }
+//                   return err.msg;
+//                 }).join(', ');
+//               } else if (validationData.detail.msg) {
+//                 errorMessage = validationData.detail.msg;
+//               }
+//             } else if (validationData.message) {
+//               errorMessage = validationData.message;
+//             }
+//           }
 //         } else {
 //           errorMessage = error.response.data?.detail || `Server error: ${error.response.status}`;
 //         }
 //       } else if (error.request) {
 //         // The request was made but no response was received
+//         console.error('No response received:', error.request);
 //         errorMessage = 'No response from server. Please check your connection.';
 //       } else {
 //         // Something happened in setting up the request that triggered an Error
+//         console.error('Error setting up request:', error.message);
 //         errorMessage = error.message;
 //       }
       
@@ -242,7 +278,7 @@
 //   const gradeOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
 //   // Medium options
-//   const mediumOptions = ['English', 'Malayalam'];
+//   const mediumOptions = ['english', 'malayalam']; // Make sure these match your backend expectations
 
 //   // Learning style options (matching backend expectations)
 //   const learningStyleOptions = [
@@ -250,9 +286,6 @@
 //     { value: 'friendly', label: 'Friendly', description: 'Encouraging and supportive approach' },
 //     { value: 'adaptive', label: 'Adaptive', description: 'Adjusts to your mood and energy' }
 //   ];
-
-//   // Stream options (for UI only, not sent to backend)
-//   const streamOptions = ['Computer Science', 'Science', 'Commerce', 'Arts', 'Medical', 'Engineering'];
 
 //   return (
 //     <div className="bg-white min-h-screen font-sans text-black antialiased">
@@ -335,7 +368,7 @@
 //                       key={grade}
 //                       onClick={() => handleGradeSelect(grade)}
 //                       className={`border p-4 text-center cursor-pointer flex flex-col justify-between aspect-square transition-all hover:border-black ${
-//                         formData.class_number === grade 
+//                         parseInt(formData.class_number) === grade 
 //                           ? 'border-black bg-black text-white' 
 //                           : 'border-gray-300 hover:bg-gray-50'
 //                       }`}
@@ -357,16 +390,16 @@
 //                   {mediumOptions.map((medium) => (
 //                     <div 
 //                       key={medium}
-//                       onClick={() => handleMediumSelect(medium.toLowerCase())}
-//                       className={`border p-4 flex items-center justify-between group cursor-pointer transition-colors ${
-//                         formData.medium === medium.toLowerCase() 
+//                       onClick={() => handleMediumSelect(medium)}
+//                       className={`border p-4 flex items-center justify-between group cursor-pointer transition-colors capitalize ${
+//                         formData.medium === medium 
 //                           ? 'border-black bg-black text-white' 
 //                           : 'border-gray-300 hover:bg-black hover:text-white'
 //                       }`}
 //                     >
 //                       <span className="text-sm font-medium">{medium}</span>
-//                       <span className="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100">
-//                         {formData.medium === medium.toLowerCase() ? 'check' : ''}
+//                       <span className="material-symbols-outlined text-sm">
+//                         {formData.medium === medium ? 'check' : ''}
 //                       </span>
 //                     </div>
 //                   ))}
@@ -375,22 +408,6 @@
 //                   <p className="text-sm text-red-500 mt-2">{errors.medium}</p>
 //                 )}
 //               </div>
-
-//               {/* Stream Selection (UI only - not sent to backend) */}
-//               {/* <div className="mb-12">
-//                 <h2 className="text-2xl font-bold mb-6">Select Your Stream (Optional)</h2>
-//                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-//                   {streamOptions.map((stream) => (
-//                     <div 
-//                       key={stream}
-//                       className="border border-gray-300 p-4 flex items-center justify-between group cursor-pointer hover:bg-gray-50 transition-colors"
-//                     >
-//                       <span className="text-sm font-medium">{stream}</span>
-//                       <span className="material-symbols-outlined text-sm opacity-0 group-hover:opacity-100">check</span>
-//                     </div>
-//                   ))}
-//                 </div>
-//               </div> */}
 
 //               {/* AI Learning Style */}
 //               <div className="mb-12">
@@ -421,6 +438,16 @@
 //                   <p className="text-sm text-red-500 mt-2">{errors.learningstyle}</p>
 //                 )}
 //               </div>
+
+//               {/* Validation Errors Display */}
+//               {validationErrors && (
+//                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+//                   <h3 className="text-sm font-bold text-red-800 mb-2">Validation Errors:</h3>
+//                   <pre className="text-xs text-red-600 whitespace-pre-wrap">
+//                     {JSON.stringify(validationErrors, null, 2)}
+//                   </pre>
+//                 </div>
+//               )}
 
 //               <div className="mt-8 pt-8 border-t border-gray-300">
 //                 <button
@@ -469,6 +496,11 @@
 // export default StudentProfileSetup;
 
 
+
+
+
+
+
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from 'axios';
@@ -489,6 +521,7 @@ const StudentProfileSetup = () => {
   const [errors, setErrors] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
   const [validationErrors, setValidationErrors] = useState(null);
+  const [apiError, setApiError] = useState('');
 
   // API base URL
   const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -505,6 +538,7 @@ const StudentProfileSetup = () => {
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
+    setApiError('');
   };
 
   // Handle file upload
@@ -547,7 +581,7 @@ const StudentProfileSetup = () => {
   const handleGradeSelect = (gradeNumber) => {
     setFormData(prev => ({
       ...prev,
-      class_number: gradeNumber.toString() // Convert to string if backend expects string
+      class_number: gradeNumber.toString()
     }));
     
     // Clear error
@@ -611,6 +645,37 @@ const StudentProfileSetup = () => {
     return localStorage.getItem('access_token');
   };
 
+  // Parse backend validation errors
+  const parseBackendErrors = (errorData) => {
+    const fieldErrors = {};
+    let generalError = '';
+    
+    if (errorData.detail) {
+      if (Array.isArray(errorData.detail)) {
+        errorData.detail.forEach(err => {
+          if (err.loc && err.loc.length > 1) {
+            const field = err.loc[err.loc.length - 1];
+            // Map backend field names to frontend field names if needed
+            const fieldMap = {
+              'class': 'class_number',
+              'learning_style': 'learningstyle'
+            };
+            const mappedField = fieldMap[field] || field;
+            fieldErrors[mappedField] = err.msg;
+          } else {
+            generalError = err.msg;
+          }
+        });
+      } else if (typeof errorData.detail === 'string') {
+        generalError = errorData.detail;
+      }
+    } else if (errorData.message) {
+      generalError = errorData.message;
+    }
+    
+    return { fieldErrors, generalError };
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -621,6 +686,7 @@ const StudentProfileSetup = () => {
 
     setLoading(true);
     setValidationErrors(null);
+    setApiError('');
 
     try {
       // Create FormData for multipart/form-data
@@ -635,10 +701,16 @@ const StudentProfileSetup = () => {
         hasImage: !!formData.image
       });
       
+      // Try different field name variations that the backend might expect
       submitFormData.append('name', formData.name);
-      submitFormData.append('class_number', formData.class_number);
+      submitFormData.append('class_number', formData.class_number); // Send as string first
       submitFormData.append('medium', formData.medium);
       submitFormData.append('learningstyle', formData.learningstyle);
+      
+      // Alternative field names if the above don't work
+      // Uncomment these if needed after checking backend requirements
+      // submitFormData.append('class', formData.class_number);
+      // submitFormData.append('learning_style', formData.learningstyle);
       
       // Only append image if it exists
       if (formData.image) {
@@ -651,11 +723,18 @@ const StudentProfileSetup = () => {
         throw new Error('No authentication token found. Please login first.');
       }
 
-      // Make API call
+      // Log FormData contents
+      console.log('FormData contents:');
+      for (let pair of submitFormData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+
+      console.log('Token:', token);
+      
       const response = await axios.post(`${API_BASE_URL}/students/create`, submitFormData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type header - let browser set it with boundary
         }
       });
 
@@ -663,7 +742,7 @@ const StudentProfileSetup = () => {
       
       // Show success message
       alert('Student profile created successfully!');
-      navigate('/SmartLearnAIHome');
+      navigate('/');
       
     } catch (error) {
       console.error('Error creating student:', error);
@@ -684,41 +763,32 @@ const StudentProfileSetup = () => {
           // Handle validation errors
           errorMessage = 'Validation error. Please check your input.';
           
-          // Check if the response contains detailed validation errors
-          if (error.response.data) {
-            // Try to extract validation errors
-            const validationData = error.response.data;
-            console.log('Validation errors:', validationData);
-            
-            // You can set these errors to display in the UI
-            setValidationErrors(validationData);
-            
-            // If the error has details about which fields failed, update the errors state
-            if (validationData.errors) {
-              const fieldErrors = {};
-              Object.keys(validationData.errors).forEach(key => {
-                fieldErrors[key] = validationData.errors[key].join(', ');
-              });
-              setErrors(fieldErrors);
-            }
-            
-            // Try to get a more specific error message
-            if (validationData.detail) {
-              if (typeof validationData.detail === 'string') {
-                errorMessage = validationData.detail;
-              } else if (Array.isArray(validationData.detail)) {
-                errorMessage = validationData.detail.map(err => {
-                  if (err.loc) {
-                    const field = err.loc[err.loc.length - 1];
-                    return `${field}: ${err.msg}`;
-                  }
-                  return err.msg;
-                }).join(', ');
-              } else if (validationData.detail.msg) {
-                errorMessage = validationData.detail.msg;
-              }
-            } else if (validationData.message) {
-              errorMessage = validationData.message;
+          // Parse backend validation errors
+          const { fieldErrors, generalError } = parseBackendErrors(error.response.data);
+          
+          if (Object.keys(fieldErrors).length > 0) {
+            setErrors(prev => ({ ...prev, ...fieldErrors }));
+          }
+          
+          if (generalError) {
+            setApiError(generalError);
+          }
+          
+          // Store raw validation errors for debugging
+          setValidationErrors(error.response.data);
+          
+          // Try to get a more specific error message
+          if (error.response.data.detail) {
+            if (Array.isArray(error.response.data.detail)) {
+              errorMessage = error.response.data.detail.map(err => {
+                if (err.loc) {
+                  const field = err.loc[err.loc.length - 1];
+                  return `${field}: ${err.msg}`;
+                }
+                return err.msg;
+              }).join(', ');
+            } else if (typeof error.response.data.detail === 'string') {
+              errorMessage = error.response.data.detail;
             }
           }
         } else {
@@ -734,6 +804,7 @@ const StudentProfileSetup = () => {
         errorMessage = error.message;
       }
       
+      // Show error message
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -744,9 +815,9 @@ const StudentProfileSetup = () => {
   const gradeOptions = Array.from({ length: 10 }, (_, i) => i + 1);
 
   // Medium options
-  const mediumOptions = ['english', 'malayalam']; // Make sure these match your backend expectations
+  const mediumOptions = ['english', 'malayalam'];
 
-  // Learning style options (matching backend expectations)
+  // Learning style options
   const learningStyleOptions = [
     { value: 'strict', label: 'Strict', description: 'Focus on discipline and structure' },
     { value: 'friendly', label: 'Friendly', description: 'Encouraging and supportive approach' },
@@ -905,11 +976,18 @@ const StudentProfileSetup = () => {
                 )}
               </div>
 
+              {/* API Error Display */}
+              {apiError && (
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{apiError}</p>
+                </div>
+              )}
+
               {/* Validation Errors Display */}
               {validationErrors && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <h3 className="text-sm font-bold text-red-800 mb-2">Validation Errors:</h3>
-                  <pre className="text-xs text-red-600 whitespace-pre-wrap">
+                <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <h3 className="text-sm font-bold text-yellow-800 mb-2">Debug - Backend Response:</h3>
+                  <pre className="text-xs text-yellow-600 whitespace-pre-wrap overflow-auto max-h-40">
                     {JSON.stringify(validationErrors, null, 2)}
                   </pre>
                 </div>

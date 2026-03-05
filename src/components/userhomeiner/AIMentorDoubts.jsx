@@ -190,7 +190,7 @@ const AIMentorDoubts = () => {
           }
         }
       );
-
+      console.log('response',response)
       if (response.data) {
         // Refresh conversations list
         await fetchConversations();
@@ -254,7 +254,7 @@ const AIMentorDoubts = () => {
           }
         }
       );
-
+      console.log('responsedata ',response.data)
       const data = response.data;
 
       const aiMessage = {
@@ -295,7 +295,7 @@ const AIMentorDoubts = () => {
           'Content-Type': 'application/json',
         }
       });
-      
+      console.log('responseconv',response)
       if (response.data) {
         // Transform the messages into chat history format
         const messages = response.data;

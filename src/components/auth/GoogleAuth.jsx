@@ -28,7 +28,7 @@ const Login = () => {
       if(res.data.user.role=="admin"){
          navigate("/AdminDashboard")
       }else if(res.data.user.role=="user"){
-         navigate("/DashboardOverview");       
+         navigate("/");       
       }
     } catch (err) {
       console.error("Google auth failed", err);
